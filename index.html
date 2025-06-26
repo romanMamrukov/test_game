@@ -34,7 +34,7 @@
       camera.attachControl(canvas, true);
 
       // Ground (2x2 meters = 2x2 Babylon units)
-      const ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 2, height: 2}, scene);
+      const ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 5, height: 5}, scene);
       ground.checkCollisions = true;
 
       // Walls
@@ -42,17 +42,17 @@
       wallMat.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
 
       function createWall(x, z, rotY = 0) {
-        const wall = BABYLON.MeshBuilder.CreateBox("wall", {width: 2, height: 1, depth: 0.1}, scene);
+        const wall = BABYLON.MeshBuilder.CreateBox("wall", {width: 5, height: 2, depth: 0.2}, scene);
         wall.position.set(x, 0.5, z);
         wall.rotation.y = rotY;
         wall.material = wallMat;
         wall.checkCollisions = true;
       }
 
-      createWall(0, -1); // back
-      createWall(0, 1);  // front
-      createWall(-1, 0, Math.PI / 2); // left
-      createWall(1, 0, Math.PI / 2);  // right
+      createWall(0, -2.5); // back
+      createWall(0, 2.5);  // front
+      createWall(-2.5, 0, Math.PI / 2); // left
+      createWall(2.5, 0, Math.PI / 2);  // right
 
       // Player pill (capsule substitute with cylinder + sphere)
       const body = BABYLON.MeshBuilder.CreateCylinder("body", {height: 1.2, diameter: 0.4}, scene);
@@ -102,7 +102,7 @@
 
       // Toggle camera
       window.addEventListener("keydown", evt => {
-        if (evt.key.toLowerCase() === "c") {
+        if (evt.key.toLowerCase() === "k") {
           isThirdPerson = !isThirdPerson;
           if (isThirdPerson) {
             camera = new BABYLON.FollowCamera("followCam", player.position.clone(), scene);
