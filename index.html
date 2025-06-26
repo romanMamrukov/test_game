@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Babylon.js Simple Scene</title>
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+    canvas { width: 100%; height: 100%; touch-action: none; }
+  </style>
+</head>
+<body>
+  <canvas id="renderCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById("renderCanvas");
+    const engine = new BABYLON.Engine(canvas, true);
+    
+    const createScene = function () {
+      const scene = new BABYLON.Scene(engine);
+      scene.gravity = new BABYLON.Vector3(0, -0.98, 0);
+      scene.collisionsEnabled = true;
+
+      // Lighting
+      const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+
+      // Camera (3rd person default)
+      let camera = new BABYLON.FollowCamera("followCam", new BABYLON.Vector3(0, 5, -10), scene);
+      camera.radius = 5;
+      camera.heightOffset = 2;
+      camera.rotationOffset = 0;
+      camera.cameraAcceleration = 0.05;
+      camera.maxCameraSpeed = 10;
+      camera.attachControl(canvas, true);
+
+      // Ground (2x2 meters = 2x2 Babylon units)
+      const ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 2, height: 2}, scene);
+      ground.checkCollisions = true;
+
+      // Walls
+      const wallMat = new BABYLON.StandardMaterial("wallMat", scene);
+      wallMat.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+
+      function createWall(x, z, rotY = 0) {
+        const wall = BABYLON.MeshBuilder.CreateBox("wall", {width: 2, height: 1, depth: 0.1}, scene);
+        wall.position.set(x, 0.5, z);
+        wall.rotation.y = rotY;
+        wall.material = wallMat;
+        wall.checkCollisions = true;
+      }
+
+      createWall(0, -1); // back
+      createWall(0, 1);  // front
+      createWall(-1, 0, Math.PI / 2); // left
+      createWall(1, 0, Math.PI / 2);  // right
+
+      // Player pill (capsule substitute with cylinder + sphere)
+      const body = BABYLON.MeshBuilder.CreateCylinder("body", {height: 1.2, diameter: 0.4}, scene);
+      const head = BABYLON.MeshBuilder.CreateSphere("head", {diameter: 0.4}, scene);
+      head.position.y = 0.8;
+      const player = BABYLON.Mesh.MergeMeshes([body, head], true);
+      player.position = new BABYLON.Vector3(0, 1, 0);
+      player.checkCollisions = true;
+      player.ellipsoid = new BABYLON.Vector3(0.2, 0.6, 0.2);
+      player.ellipsoidOffset = new BABYLON.Vector3(0, 0.6, 0);
+      player.applyGravity = true;
+
+      camera.lockedTarget = player;
+
+      // Movement
+      const inputMap = {};
+      scene.actionManager = new BABYLON.ActionManager(scene);
+      scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+        BABYLON.ActionManager.OnKeyDownTrigger, evt => inputMap[evt.sourceEvent.key.toLowerCase()] = true));
+      scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+        BABYLON.ActionManager.OnKeyUpTrigger, evt => inputMap[evt.sourceEvent.key.toLowerCase()] = false));
+
+      let isThirdPerson = true;
+
+      scene.onBeforeRenderObservable.add(() => {
+        const delta = engine.getDeltaTime() / 1000;
+        const speed = inputMap["control"] || inputMap["x"] ? 1.0 : 2.5;
+        const jump = inputMap[" "] && player.position.y <= 1.01;
+
+        let direction = new BABYLON.Vector3(
+          (inputMap["a"] ? -1 : 0) + (inputMap["d"] ? 1 : 0),
+          0,
+          (inputMap["w"] ? 1 : 0) + (inputMap["s"] ? -1 : 0)
+        ).normalize();
+
+        if (direction.length() > 0) {
+          const forward = camera.getForwardRay().direction;
+          const angle = Math.atan2(forward.x, forward.z);
+          direction = BABYLON.Vector3.TransformCoordinates(direction, BABYLON.Matrix.RotationY(angle));
+          player.moveWithCollisions(direction.scale(speed * delta));
+        }
+
+        if (jump) {
+          player.moveWithCollisions(new BABYLON.Vector3(0, 0.2, 0));
+        }
+      });
+
+      // Toggle camera
+      window.addEventListener("keydown", evt => {
+        if (evt.key.toLowerCase() === "c") {
+          isThirdPerson = !isThirdPerson;
+          if (isThirdPerson) {
+            camera = new BABYLON.FollowCamera("followCam", player.position.clone(), scene);
+            camera.radius = 5;
+            camera.heightOffset = 2;
+            camera.attachControl(canvas, true);
+            camera.lockedTarget = player;
+          } else {
+            camera = new BABYLON.UniversalCamera("fpCam", player.position.clone().add(new BABYLON.Vector3(0, 0.6, 0)), scene);
+            camera.attachControl(canvas, true);
+            camera.checkCollisions = true;
+            camera.applyGravity = true;
+          }
+        }
+      });
+
+      return scene;
+    };
+
+    const scene = createScene();
+    engine.runRenderLoop(() => scene.render());
+    window.addEventListener("resize", () => engine.resize());
+  </script>
+</body>
+</html>
