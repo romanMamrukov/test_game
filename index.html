@@ -19,7 +19,7 @@
 </head>
 <body>
   <canvas id="renderCanvas"></canvas>
-  <div id="cameraArea"></div>
+  <div id="cameraArea" style="position: absolute; bottom: 0; right: 0; width: 200px; height: 200px; z-index: 10;"></div>
   <script type="module">
     import * as BABYLON from "https://cdn.babylonjs.com/babylon.js";
     import * as GUI from "https://cdn.babylonjs.com/gui/babylon.gui.min.js";
@@ -46,7 +46,8 @@
     scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyUpTrigger, e => inputMap[e.sourceEvent.key.toLowerCase()] = false));
 
     setupControls(scene, player, cameras.getActiveCamera, inputMap);
-    setupMobileControls(scene, inputMap, canvas, cameras.getActiveCamera);
+    setupMobileControls(scene, inputMap, canvas, () => camera, player);
+
 
     engine.runRenderLoop(() => scene.render());
     window.addEventListener("resize", () => engine.resize());
